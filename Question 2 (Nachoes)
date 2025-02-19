@@ -1,0 +1,40 @@
+public static void finish() {
+    Lib.debug(dbgThread, "Finishing thread: " + currentThread.toString());
+    
+    Machine.interrupt().disable(); // Disable interrupts for atomicity
+    Machine.autoGrader().finishingCurrentThread();
+    
+    Lib.assertTrue(toBeDestroyed == null); 
+    toBeDestroyed = currentThread; // Mark the current thread to be destroyed
+    
+    currentThread.status = statusFinished;
+    
+    // Wake up any thread waiting on join()
+    if (currentThread.joiningThread != null) {
+        currentThread.joiningThread.ready();
+        currentThread.joiningThread = null;
+    }
+    
+    sleep(); // Switch context to another thread
+}
+^(lines 194-207) 
+
+public void join() {
+    Lib.debug(dbgThread, "Joining to thread: " + toString());
+    
+    Lib.assertTrue(this != currentThread); // Cannot join itself
+
+    boolean intStatus = Machine.interrupt().disable(); // Disable interrupts for atomicity
+    
+    if (joiningThread != null) {
+        Lib.assertTrue(false, "join() called more than once on the same thread!");
+    }
+    
+    if (this.status != statusFinished) {
+        joiningThread = currentThread; // Store the joining thread
+        currentThread.sleep(); // Put the calling thread to sleep
+    }
+    
+    Machine.interrupt().restore(intStatus); // Restore interrupts
+}
+^(lines 283-288)
